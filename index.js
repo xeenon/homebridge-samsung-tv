@@ -80,7 +80,7 @@ SamsungTvAccessory.prototype._setOn = function(on, callback) {
     if (on) {
         callback(new Error('Could not turn on TV'));
     } else {
-        this.remote.send('KEY_POWER', function(err) {
+        this.remote.send('KEY_POWEROFF', function(err) {
             if (err) {
                 callback(new Error(err));
             } else {
