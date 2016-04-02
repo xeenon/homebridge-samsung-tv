@@ -17,13 +17,15 @@ Example config.json:
 		{
 			"accessory": "SamsungTV",
 			"name": "TV Living room",
-			"ip_address": "192.168.1.2"
+			"ip_address": "192.168.1.2",
+            "sendDelay": 400
 		}
 	],
 ```
 
 Fields: 
 
-* "accessory": Must always be "SamsungTV" (required)
+* "accessory": Must always be "SamsungTV". (required)
 * "name": The name you want to use to control the TV.
-* "ip_address": The internal ip address of your samsung TV
+* "ip_address": The internal ip address of your samsung TV.
+* "sendDelay": When switching to another channel the individual keys will be send with a short delay (in ms) between them. (default 400)
