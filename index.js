@@ -22,12 +22,15 @@ function SamsungTvAccessory(log, config) {
     this.config = config;
     this.name = config["name"];
     this.ip_address = config["ip_address"];
+    this.sendDelay = config["sendDelay"] || 400;
 
     if (!this.ip_address) throw new Error("You must provide a config value for 'ip_address'.");
 
     this.remote = new SamsungRemote({
         ip: this.ip_address // required: IP address of your Samsung Smart TV
     });
+
+    this.isSendingSequence = false;
 
     this.service = new Service.Switch(this.name);
 
@@ -104,13 +107,52 @@ SamsungTvAccessory.prototype._setVolume = function(volume, callback) {
 SamsungTvAccessory.prototype._getChannel = function(callback) {
     var accessory = this;
 
-    callback(null, 2);
+    callback(null, 1);
 };
 
-SamsungTvAccessory.prototype._setChannel = function(volume, callback) {
+SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
     var accessory = this;
 
-    callback(null);
+    // Dismiss the request when another key sequence sending
+    if (this.isSendingSequence) {
+        callback(null);
+        this.log.debug('Cannot send channel %s while sending other channel keys.', channel.toString());
+        return;
+    }
+    this.isSendingSequence = true;
+    this.log.debug('Sending channel %s.', channel.toString());
+
+    var chStr = channel.toString(),
+        keys = [];
+    for (var i = 0, j = chStr.length; i < j; ++i) {
+        keys.push('KEY_' + chStr[i]);
+    }
+    // Add the enter key to the end
+    keys.push('KEY_ENTER');
+
+    function sendKey(index) {
+        if (index < keys.length) {
+            accessory.log.debug('Sending channel key %s.', keys[index]);
+            accessory.remote.send(keys[index], function(err) {
+                if (err) {
+                    accessory.isSendingSequence = false;
+                    callback(new Error(err));
+                    accessory.log.error('Could not send channel key %s: %s', keys[index], err);
+                    return;
+                }
+                
+                // Send the next key after the specified delay
+                setTimeout(function() {
+                    sendKey(++index)
+                }, accessory.sendDelay);
+            });
+            return;
+        }
+        accessory.log.debug('Finished sending channel %s.', channel);
+        accessory.isSendingSequence = false;
+        callback(null);
+    }
+    sendKey(0)
 };
 
 //
@@ -141,8 +183,8 @@ function makeChannelCharacteristic() {
         this.setProps({
             format: Characteristic.Formats.INT,
             unit: Characteristic.Units.NONE,
-            maxValue: 100,
-            minValue: 0,
+            maxValue: 400,
+            minValue: 1,
             minStep: 1,
             perms: [Characteristic.Perms.READ, Characteristic.Perms.WRITE, Characteristic.Perms.NOTIFY]
         });
