@@ -36,3 +36,5 @@ Field           | Description
 
 Since some Samsung TV's will disconnect from the network when turned off it is not possible to turn them back on again over network.
 Furthermore it is not possible to observe current values such as the volume or the channel. Therefore only channel changes that where made through this plugin will be tracked (channel changes with the regular remote for example can not be tracked).
+
+When changing the volume characteristic the number represents the count of times the volume up or down key will be triggered. This means to increase the volume by 3 units the characteristic should be set to 3. To decrease the volume by 2 units e.g. the value would be -2.
