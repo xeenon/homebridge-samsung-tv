@@ -22,7 +22,7 @@ function SamsungTvAccessory(log, config) {
     this.config = config;
     this.name = config["name"];
     this.ip_address = config["ip_address"];
-    this.sendDelay = config["sendDelay"] || 400;
+    this.send_delay = config["send_delay"] || 400;
 
     if (!this.ip_address) throw new Error("You must provide a config value for 'ip_address'.");
 
@@ -31,6 +31,11 @@ function SamsungTvAccessory(log, config) {
     });
 
     this.isSendingSequence = false;
+
+    // The channel value can not be accessed on the tv
+    // if the normal remote is used to change the channel
+    // the value will not be updated therefore
+    this.channel = 1;
 
     this.service = new Service.Switch(this.name);
 
@@ -68,23 +73,36 @@ SamsungTvAccessory.prototype._getOn = function(callback) {
     var accessory = this;
     this.remote.isAlive(function(err) {
         if (err) {
-             callback(new Error('TV is offline'));
+            //callback(new Error('TV is offline'));
+            accessory.log.debug('TV is offline: %s', err);
+            callback(null, false);
         } else {
-            accessory.log.debug('TV is ALIVE!');
+            accessory.log.debug('TV is alive.');
             callback(null, true);
         }
     });
 };
 
 SamsungTvAccessory.prototype._setOn = function(on, callback) {
+    var accessory = this;
     if (on) {
-        callback(new Error('Could not turn on TV'));
+        //callback(new Error('Could not turn on TV'));
+        this.remote.send('KEY_POWERON', function(err) {
+            if (err) {
+                accessory.log.debug('Could not turn TV on: %s', err);
+                callback(new Error(err));
+            } else {
+                accessory.log.debug('TV successfully turnen on');
+                callback(null);
+            }
+        });
     } else {
         this.remote.send('KEY_POWEROFF', function(err) {
             if (err) {
+                accessory.log.debug('Could not turn TV off: %s', err);
                 callback(new Error(err));
             } else {
-                // command has been successfully transmitted to your tv
+                accessory.log.debug('TV successfully turnen off');
                 callback(null);
             }
         });
@@ -107,7 +125,7 @@ SamsungTvAccessory.prototype._setVolume = function(volume, callback) {
 SamsungTvAccessory.prototype._getChannel = function(callback) {
     var accessory = this;
 
-    callback(null, 1);
+    callback(null, accessory.channel);
 };
 
 SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
@@ -144,20 +162,23 @@ SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
                 // Send the next key after the specified delay
                 setTimeout(function() {
                     sendKey(++index)
-                }, accessory.sendDelay);
+                }, accessory.send_delay);
             });
             return;
         }
         accessory.log.debug('Finished sending channel %s.', channel);
         accessory.isSendingSequence = false;
+        accessory.channel = channel;
         callback(null);
     }
     sendKey(0)
 };
 
-//
-// Custom Characteristic for Volume
-//
+/**
+ * Custom characteristic for volume
+ *
+ * @return {Characteristic} The volume characteristic
+ */
 function makeVolumeCharacteristic() {
 
     VolumeCharacteristic = function() {
@@ -176,6 +197,11 @@ function makeVolumeCharacteristic() {
     inherits(VolumeCharacteristic, Characteristic);
 }
 
+/**
+ * Custom characteristic for channel
+ *
+ * @return {Characteristic} The channel characteristic
+ */
 function makeChannelCharacteristic() {
 
     ChannelCharacteristic = function () {
@@ -183,7 +209,7 @@ function makeChannelCharacteristic() {
         this.setProps({
             format: Characteristic.Formats.INT,
             unit: Characteristic.Units.NONE,
-            maxValue: 400,
+            maxValue: 9999,
             minValue: 1,
             minStep: 1,
             perms: [Characteristic.Perms.READ, Characteristic.Perms.WRITE, Characteristic.Perms.NOTIFY]
