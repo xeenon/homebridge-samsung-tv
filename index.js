@@ -134,13 +134,20 @@ SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
     // Dismiss the request when another key sequence sending
     if (this.isSendingSequence) {
         callback(null);
-        this.log.debug('Cannot send channel %s while sending other channel keys.', channel.toString());
+        this.log.debug('Cannot send channel %s while sending other channel keys.', channel);
         return;
     }
     this.isSendingSequence = true;
-    this.log.debug('Sending channel %s.', channel.toString());
+    this.log.debug('Sending channel %s.', channel);
 
-    var chStr = channel.toString(),
+    var channelInt = parseInt(channel, 10);
+    if (isNaN(channelInt) || channelInt < 1 || channelInt > 9999) {
+        callback(new Error('Invalid channel "' + channel + '"'));
+        this.log.error('Invalid channel "%s".', channel);
+        return;
+    }
+
+    var chStr = channelInt.toString(),
         keys = [];
     for (var i = 0, j = chStr.length; i < j; ++i) {
         keys.push('KEY_' + chStr[i]);
@@ -207,14 +214,15 @@ function makeChannelCharacteristic() {
     ChannelCharacteristic = function () {
         Characteristic.call(this, 'Channel', '212131F4-2E14-4FF4-AE13-C97C3232499D');
         this.setProps({
-            format: Characteristic.Formats.INT,
+            format: Characteristic.Formats.STRING,
             unit: Characteristic.Units.NONE,
-            maxValue: 9999,
-            minValue: 1,
-            minStep: 1,
+            //maxValue: 9999,
+            //minValue: 1,
+            //minStep: 1,
             perms: [Characteristic.Perms.READ, Characteristic.Perms.WRITE, Characteristic.Perms.NOTIFY]
         });
-        this.value = this.getDefaultValue();
+        //this.value = this.getDefaultValue();
+        this.value = "1";
     };
 
     inherits(ChannelCharacteristic, Characteristic);

@@ -36,5 +36,3 @@ Field           | Description
 
 Since some Samsung TV's will disconnect from the network when turned off it is not possible to turn them back on again over network.
 Furthermore it is not possible to observe current values such as the volume or the channel. Therefore only channel changes that where made through this plugin will be tracked (channel changes with the regular remote for example can not be tracked).
-
-If you are using the [Homekit Catalog App](https://developer.apple.com/library/ios/samplecode/HomeKitCatalog/Introduction/Intro.html) to setup scenes etc. it can be pretty tricky to adjust the channel value with the slider because the values range between 1 and 9999. I suggest to turn the iPhone into landscape mode when adjusting the channel value therefore because it allows a more precise value adaption.
