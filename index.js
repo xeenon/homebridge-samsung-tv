@@ -125,6 +125,23 @@ SamsungTvAccessory.prototype._setVolume = function(volume, callback) {
 		return;
 	}
 	this.isSendingSequence = true;
+
+	// When volume is 0, mute will be toggled
+	if (volume === 0) {
+		accessory.remote.send('KEY_MUTE', function(err) {
+			if (err) {
+				accessory.isSendingSequence = false;
+				callback(new Error(err));
+				accessory.log.error('Could not send mute key: %s', err);
+				return;
+			}
+			accessory.log.debug('Finished sending mute key.');
+			accessory.isSendingSequence = false;
+			callback(null);
+		});
+		return;
+	}
+
 	this.log.debug('Changing volume by %s.', volume);
 
 	var volumeKey = volume > 0 ? 'KEY_VOLUP' : 'KEY_VOLDOWN';
