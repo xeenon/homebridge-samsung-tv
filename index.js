@@ -1,6 +1,6 @@
 var SamsungRemote = require('samsung-remote');
 var inherits = require('util').inherits;
-var Service, Characteristic, VolumeCharacteristic, ChannelCharacteristic;
+var Service, Characteristic, VolumeCharacteristic, ChannelCharacteristic, KeyCharacteristic;
 
 module.exports = function(homebridge) {
 	Service = homebridge.hap.Service;
@@ -9,6 +9,7 @@ module.exports = function(homebridge) {
 	// we can only do this after we receive the homebridge API object
 	makeVolumeCharacteristic();
 	makeChannelCharacteristic();
+	makeKeyCharacteristic();
 
 	homebridge.registerAccessory("homebridge-samsungtv", "SamsungTV", SamsungTvAccessory);
 };
@@ -53,6 +54,11 @@ function SamsungTvAccessory(log, config) {
 		.addCharacteristic(ChannelCharacteristic)
 		.on('get', this._getChannel.bind(this))
 		.on('set', this._setChannel.bind(this));
+
+	this.service
+		.addCharacteristic(KeyCharacteristic)
+		.on('get', this._getKey.bind(this))
+		.on('set', this._setKey.bind(this));
 }
 
 SamsungTvAccessory.prototype.getInformationService = function() {
@@ -230,6 +236,38 @@ SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
 	sendKey(0)
 };
 
+SamsungTvAccessory.prototype._getKey = function(callback) {
+	var accessory = this;
+
+	callback(null, accessory.key);
+};
+
+SamsungTvAccessory.prototype._setKey = function(key, callback) {
+	var accessory = this;
+
+	// Dismiss the request when a key sequence is sending
+	if (this.isSendingSequence) {
+		callback(null);
+		this.log.debug('Cannot send key %s while sending a key sequence.', key);
+		return;
+	}
+	this.isSendingSequence = true;
+	this.log.debug('Sending key %s.', key);
+
+	accessory.remote.send('KEY_' + key.toUpperCase(), function(err) {
+		if (err) {
+			accessory.isSendingSequence = false;
+			callback(new Error(err));
+			accessory.log.error('Could not send key %s: %s', key, err);
+			return;
+		}
+		accessory.log.debug('Finished sending key %s.', key);
+		accessory.isSendingSequence = false;
+		accessory.key = key;
+		callback(null);
+	});
+};
+
 /**
  * Custom characteristic for volume
  *
@@ -276,4 +314,29 @@ function makeChannelCharacteristic() {
 	};
 
 	inherits(ChannelCharacteristic, Characteristic);
+}
+
+/**
+ * Custom characteristic for any key
+ * @see(https://github.com/natalan/samsung-remote) The key can be any remote key without the KEY_ at the beginning (e.g. MENU)
+ *
+ * @return {Characteristic} The key characteristic
+ */
+function makeKeyCharacteristic() {
+
+	KeyCharacteristic = function() {
+		Characteristic.call(this, 'Key', '2A6FD4DE-8103-4E58-BDAC-25835CD006BD');
+		this.setProps({
+			format: Characteristic.Formats.STRING,
+			unit: Characteristic.Units.NONE,
+			//maxValue: 10,
+			//minValue: -10,
+			//minStep: 1,
+			perms: [Characteristic.Perms.READ, Characteristic.Perms.WRITE, Characteristic.Perms.NOTIFY]
+		});
+		//this.value = this.getDefaultValue();
+		this.value = "TV";
+	};
+
+	inherits(KeyCharacteristic, Characteristic);
 }

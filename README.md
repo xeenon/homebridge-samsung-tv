@@ -32,9 +32,16 @@ Field           | Description
 **ip_address**  | The internal ip address of your samsung TV.
 **send_delay**   | When switching to another channel the individual keys will be send with a short delay (in ms) between them. (default 400)
 
+##Usage
+
+The first numeric characteristic represents the volume. When changing the volume characteristic the number represents the count of times the volume up or down key will be triggered. In other words to increase the volume by 3 units, the characteristic should be set to 3, to decrease the volume by 2 units e.g. the value would be -2. By setting volume to 0 the mute key will be triggered.
+
+The next characteristic represents the channel. To set a channel just set up a scene with the numeric value of the channel.
+
+The last characteristic allows sending any key from [this list](https://github.com/natalan/samsung-remote#remote-keys) without the `KEY_` at the beginning. To send the pre-channel key e.g. set up a scene where this characteristic will be set to `PRECH`.
+
 ##Limitations:
 
+The volume, channel and key characteristics send single keys with a short delay between them to accomplish their task. Therefore to set these characteristics values you should set up a scene with the desired value in the corresponding characteristics so that not every single change will be send before you've finished typing.  
 Since some Samsung TV's will disconnect from the network when turned off it is not possible to turn them back on again over network.
 Furthermore it is not possible to observe current values such as the volume or the channel. Therefore only channel changes that where made through this plugin will be tracked (channel changes with the regular remote for example can not be tracked).
-
-When changing the volume characteristic the number represents the count of times the volume up or down key will be triggered. This means to increase the volume by 3 units the characteristic should be set to 3. To decrease the volume by 2 units e.g. the value would be -2. By setting volume to 0 the mute key will be triggered. 
