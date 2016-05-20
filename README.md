@@ -6,7 +6,7 @@ This plugin allows you to control your Samsung TV with HomeKit and Siri.
 
 ##Installation
 1. Install homebridge using: `npm install -g homebridge`
-2. Install this plugin using: `npm install -g git+https://github.com/mmende/homebridge-samsungtv-control.git`
+2. Install this plugin using: `npm install -g homebridge-samsungtv-control`
 3. Update your configuration file. See the sample below.
 
 ##Configuration
