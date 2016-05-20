@@ -1,6 +1,6 @@
 {
   "name": "homebridge-samsungtv-control",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Homebridge Samsung TV plugin to control things like channel, volume etc.",
   "contributors": [
     {
@@ -14,7 +14,8 @@
   },
   "license": "ISC",
   "keywords": [
-    "homebridge-plugin", "samsung"
+    "homebridge-plugin",
+    "samsung"
   ],
   "repository": {
     "type": "git",
