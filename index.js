@@ -2,6 +2,21 @@ var SamsungRemote = require('samsung-remote');
 var inherits = require('util').inherits;
 var Service, Characteristic, VolumeCharacteristic, ChannelCharacteristic, KeyCharacteristic;
 
+/**
+ * Just a little helper that guarantees that the callback function is only callable once.
+ *
+ * @param {Function} callback The actual callback.
+ */
+function DisposableCallback(callback) {
+	var _callback = callback
+	return function() {
+		_callback.apply(this, arguments)
+		_callback = function() {
+			console.log('Warning: Attempt to call disposable callback twice.')
+		}
+	}
+}
+
 module.exports = function(homebridge) {
 	Service = homebridge.hap.Service;
 	Characteristic = homebridge.hap.Characteristic;
@@ -77,39 +92,39 @@ SamsungTvAccessory.prototype.getServices = function() {
 
 SamsungTvAccessory.prototype._getOn = function(callback) {
 	var accessory = this;
+	var cb = DisposableCallback(callback)
 	this.remote.isAlive(function(err) {
 		if (err) {
-			//callback(new Error('TV is offline'));
 			accessory.log.debug('TV is offline: %s', err);
-			callback(null, false);
+			cb(null, false);
 		} else {
 			accessory.log.debug('TV is alive.');
-			callback(null, true);
+			cb(null, true);
 		}
 	});
 };
 
 SamsungTvAccessory.prototype._setOn = function(on, callback) {
 	var accessory = this;
+	var cb = DisposableCallback(callback)
 	if (on) {
-		//callback(new Error('Could not turn on TV'));
 		this.remote.send('KEY_POWERON', function(err) {
 			if (err) {
 				accessory.log.debug('Could not turn TV on: %s', err);
-				callback(new Error(err));
+				cb(new Error(err));
 			} else {
 				accessory.log.debug('TV successfully turnen on');
-				callback(null);
+				cb(null);
 			}
 		});
 	} else {
 		this.remote.send('KEY_POWEROFF', function(err) {
 			if (err) {
 				accessory.log.debug('Could not turn TV off: %s', err);
-				callback(new Error(err));
+				cb(new Error(err));
 			} else {
 				accessory.log.debug('TV successfully turnen off');
-				callback(null);
+				cb(null);
 			}
 		});
 	}
@@ -117,16 +132,17 @@ SamsungTvAccessory.prototype._setOn = function(on, callback) {
 
 SamsungTvAccessory.prototype._getVolume = function(callback) {
 	var accessory = this;
-
-	callback(null, 25);
+	var cb = DisposableCallback(callback)
+	cb(null, 25);
 };
 
 SamsungTvAccessory.prototype._setVolume = function(volume, callback) {
 	var accessory = this;
+	var cb = DisposableCallback(callback)
 
 	// Dismiss the request when another key sequence sending
 	if (this.isSendingSequence) {
-		callback(null);
+		cb(null);
 		this.log.debug('Cannot send volume change by %s while sending other key sequence.', volume);
 		return;
 	}
@@ -137,13 +153,13 @@ SamsungTvAccessory.prototype._setVolume = function(volume, callback) {
 		accessory.remote.send('KEY_MUTE', function(err) {
 			if (err) {
 				accessory.isSendingSequence = false;
-				callback(new Error(err));
+				cb(new Error(err));
 				accessory.log.error('Could not send mute key: %s', err);
 				return;
 			}
 			accessory.log.debug('Finished sending mute key.');
 			accessory.isSendingSequence = false;
-			callback(null);
+			cb(null);
 		});
 		return;
 	}
@@ -171,7 +187,7 @@ SamsungTvAccessory.prototype._setVolume = function(volume, callback) {
 		}
 		accessory.log.debug('Finished changing volume by %s.', volume);
 		accessory.isSendingSequence = false;
-		callback(null);
+		cb(null);
 	}
 	sendKey(absVolume);
 };
@@ -179,16 +195,18 @@ SamsungTvAccessory.prototype._setVolume = function(volume, callback) {
 
 SamsungTvAccessory.prototype._getChannel = function(callback) {
 	var accessory = this;
+	var cb = DisposableCallback(callback)
 
-	callback(null, accessory.channel);
+	cb(null, accessory.channel);
 };
 
 SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
 	var accessory = this;
+	var cb = DisposableCallback(callback)
 
 	// Dismiss the request when another key sequence sending
 	if (this.isSendingSequence) {
-		callback(null);
+		cb(null);
 		this.log.debug('Cannot send channel %s while sending other key sequence.', channel);
 		return;
 	}
@@ -197,7 +215,7 @@ SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
 
 	var channelInt = parseInt(channel, 10);
 	if (isNaN(channelInt) || channelInt < 1 || channelInt > 9999) {
-		callback(new Error('Invalid channel "' + channel + '"'));
+		cb(new Error('Invalid channel "' + channel + '"'));
 		this.log.error('Invalid channel "%s".', channel);
 		return;
 	}
@@ -216,7 +234,7 @@ SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
 			accessory.remote.send(keys[index], function(err) {
 				if (err) {
 					accessory.isSendingSequence = false;
-					callback(new Error(err));
+					cb(new Error(err));
 					accessory.log.error('Could not send channel key %s: %s', keys[index], err);
 					return;
 				}
@@ -231,23 +249,25 @@ SamsungTvAccessory.prototype._setChannel = function(channel, callback) {
 		accessory.log.debug('Finished sending channel %s.', channel);
 		accessory.isSendingSequence = false;
 		accessory.channel = channel;
-		callback(null);
+		cb(null);
 	}
 	sendKey(0)
 };
 
 SamsungTvAccessory.prototype._getKey = function(callback) {
 	var accessory = this;
+	var cb = DisposableCallback(callback)
 
-	callback(null, accessory.key);
+	cb(null, accessory.key);
 };
 
 SamsungTvAccessory.prototype._setKey = function(key, callback) {
 	var accessory = this;
+	var cb = DisposableCallback(callback)
 
 	// Dismiss the request when a key sequence is sending
 	if (this.isSendingSequence) {
-		callback(null);
+		cb(null);
 		this.log.debug('Cannot send key %s while sending a key sequence.', key);
 		return;
 	}
@@ -257,14 +277,14 @@ SamsungTvAccessory.prototype._setKey = function(key, callback) {
 	accessory.remote.send('KEY_' + key.toUpperCase(), function(err) {
 		if (err) {
 			accessory.isSendingSequence = false;
-			callback(new Error(err));
+			cb(new Error(err));
 			accessory.log.error('Could not send key %s: %s', key, err);
 			return;
 		}
 		accessory.log.debug('Finished sending key %s.', key);
 		accessory.isSendingSequence = false;
 		accessory.key = key;
-		callback(null);
+		cb(null);
 	});
 };
 
