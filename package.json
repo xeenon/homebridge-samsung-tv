@@ -1,28 +1,23 @@
 {
   "name": "homebridge-samsungtv-control",
   "version": "1.1.1",
-  "description": "Homebridge Samsung TV plugin to control things like channel, volume etc.",
-  "contributors": [
-    {
-      "name": "Martin Mende",
-      "email": "martin.mende@aristech.de"
-    }
-  ],
-  "author": "CONNCTED",
+  "description": "Homebridge Samsung TV plugin to turn TV on/off",
+  "author": "esteban-mallen",
   "dependencies": {
     "samsung-remote": "^1.2.5"
   },
-  "license": "ISC",
+  "license": "MIT",
   "keywords": [
     "homebridge-plugin",
-    "samsung"
+    "samsung",
+    "tv"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mmende/homebridge-samsungtv-control.git"
+    "url": "https://github.com/esteban-malen/homebridge-samsungtv-control.git"
   },
   "bugs": {
-    "url": "https://github.com/mmende/homebridge-samsungtv-control/issues"
+    "url": "https://github.com/esteban-mallen/homebridge-samsungtv-control/issues"
   },
   "engines": {
     "node": ">=0.12.0",
