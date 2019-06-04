@@ -1,10 +1,15 @@
 {
-  "name": "homebridge-samsungtv-control",
+  "name": "homebridge-samsung-tv",
   "version": "1.1.1",
-  "description": "Homebridge Samsung TV plugin to turn TV on/off",
+  "description": "Homebridge Samsung TV plugin",
   "author": "esteban-mallen",
   "dependencies": {
-    "samsung-remote": "^1.2.5"
+    "samsung-remote": "^1.4.2",
+    "wake_on_lan": "0.0.4"
+  },
+  "devDependencies": {
+    "homebridge": "^0.4.47",
+    "hap-nodejs": "^0.4.48"
   },
   "license": "MIT",
   "keywords": [

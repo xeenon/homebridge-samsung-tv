@@ -1,80 +1,123 @@
-const SamsungRemote = require('samsung-remote');
+const samsungAPI = require('./lib/samsungAPI').SamsungAPI;
 let Service, Characteristic;
 
 module.exports = function (homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
 
-    homebridge.registerAccessory("homebridge-samsungtv", "Samsung-TV", SamsungTvAccessory);
+    homebridge.registerAccessory("homebridge-samsung-tv", "samsungTv", SamsungTvAccessory);
 };
 
 function SamsungTvAccessory(log, config) {
     this.log = log;
-    this.name = config["name"];
-    this.ip_address = config["ip_address"];
-    this.polling = config["polling"] | true;
-    this.pollingInterval = config["pollingInterval"] | 1;
-
-    if (!this.ip_address) throw new Error("You must provide an ip_address");
-
-    this.remote = new SamsungRemote({
-        ip: this.ip_address
-    });
-
-    this.service = new Service.Switch(this.name);
-
-    this.service
-        .getCharacteristic(Characteristic.On)
-        .on('get', this.getState.bind(this))
-        .on('set', this.setState.bind(this));
-
+    this.name = config.name;
+    this.ipAddress = config.ip_address;
+    this.macAddress = config.macAddress;
+    this.polling = config.polling | true;
+    this.pollingInterval = config.pollingInterval | 1;
     this.isOn;
-    this.timer;
 
+    this.api = new samsungAPI(this.log, this.ipAddress, this.macAddress);
+
+    this.services = [];
+
+    this.tvService = new Service.Television(this.name, 'Television')
+        .setCharacteristic(Characteristic.ConfiguredName, this.name)
+        .setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.NOT_DISCOVERABLE)
+        .setCharacteristic(Characteristic.PowerModeSelection, Characteristic.PowerModeSelection.SHOW);
+
+    this.tvService
+        .getCharacteristic(Characteristic.Active)
+        .on('set', this.setPowerState.bind(this))
+        .on('get', this.getPowerState.bind(this));
+
+    this.tvService.setCharacteristic(Characteristic.ActiveIdentifier, 1);
+
+    this.tvService
+        .getCharacteristic(Characteristic.ActiveIdentifier)
+        .on('set', this.setInput.bind(this));
+
+    this.tvService
+        .getCharacteristic(Characteristic.RemoteKey)
+        .on('set', this.sendRemoteKey.bind(this));
+
+    this.speakerService = new Service.TelevisionSpeaker(this.name + ' volume', 'volumeService')
+        .setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
+        .setCharacteristic(Characteristic.VolumeControlType, Characteristic.VolumeControlType.ABSOLUTE);
+
+    this.speakerService
+        .getCharacteristic(Characteristic.VolumeSelector)
+        .on('set', this.setVolume.bind(this));
+
+    this.speakerService
+        .getCharacteristic(Characteristic.Mute)
+        .on('set', this.setMute.bind(this));
+
+    let index = 1;
+
+    this.tvInputService = new Service.InputSource('tv', 'TV')
+        .setCharacteristic(Characteristic.Identifier, index++)
+        .setCharacteristic(Characteristic.ConfiguredName, 'TV')
+        .setCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
+        .setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
+        .setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.TUNER)
+        .setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.TV);
+
+    this.tvService.addLinkedService(this.speakerService);
+    this.tvService.addLinkedService(this.tvInputService);
+
+    this.services.push(this.tvService, this.speakerService, this.tvInputService);
+
+    this.inputServices = {
+        1: this.tvInputService
+    };
+
+    config.enabledInputs
+        .forEach(inputId => {
+            let serviceIndex = index++;
+            let inputService = this.createInputService(serviceIndex, inputId);
+            this.tvService.addLinkedService(inputService);
+            this.services.push(inputService);
+            this.inputServices[serviceIndex] = inputService;
+        });
+
+    this.timer;
     this.updateTimer();
 }
 
 SamsungTvAccessory.prototype = {
-    getInformationService() {
-        return new Service.AccessoryInformation()
-            .setCharacteristic(Characteristic.Name, this.name)
-            .setCharacteristic(Characteristic.Manufacturer, 'Samsung TV')
-            .setCharacteristic(Characteristic.Model, '1.0.0')
-            .setCharacteristic(Characteristic.SerialNumber, this.ip_address);
-    },
-
     getServices() {
-        return [this.service, this.getInformationService()];
+        return this.services;
     },
 
-    getState(callback) {
-        this.remote.isAlive(function (err) {
-            if (err) {
-                this.log.debug('TV offline: %s', err);
-                callback(null, false);
-            } else {
-                this.log.debug('TV on');
-                callback(null, true);
-            }
-        }.bind(this));
+    setPowerState(state, callback) {
+        this.log.debug('State received:', state);
+        this.api.setState(state, callback);
     },
 
-    setState(on, callback) {
-	if (on !== this.isOn) {
-		let command = on ? 'KEY_POWERON' : 'KEY_POWEROFF';
+    getPowerState(callback) {
+        this.log.debug('Get state called');
+        this.api.isOn(callback);
+    },
 
-		this.remote.send(command, function (err) {
-	            if (err) {
-        	        this.log('Failed sending %s', command, err);
-	                callback(err);
-        	    } else {
-	                this.log(on ? 'Turned on' : 'Turned off');
-                	callback(null);
-        	    }
-	        }.bind(this));
-	}else {
-		callback(null);
-	}
+    sendRemoteKey(key, callback) {
+        this.log.debug('Key received:', key);
+        this.api.sendKey(key, callback);
+    },
+
+    setVolume(volume, callback) {
+        this.log.debug('Volume received:', volume);
+        this.api.changeVolume(volume,callback);
+    },
+
+    setMute(mute, callback) {
+        this.log.debug('Mute received:', mute);
+        this.api.setMute(callback);
+    },
+
+    setInput(input, callback) {
+        this.log.debug('Input received:', input);
+        this.api.setInput(input, callback);
     },
 
     updateTimer() {
@@ -82,11 +125,11 @@ SamsungTvAccessory.prototype = {
             clearTimeout(this.timer);
 
             this.timer = setTimeout(function () {
-                this.getState(function (err, state) {
-                    if (err == null && state != this.isOn) {
-                        this.log("State changed: %s", state ? "on" : "off");
-                        this.service.getCharacteristic(Characteristic.On).updateValue(state);
-                        this.isOn = state;
+                this.getPowerState(function (err, isOn) {
+                    if (err == null && isOn !== this.isOn) {
+                        this.log("State changed: %s", isOn ? "on" : "off");
+                        this.isOn = isOn;
+                        this.tvService.getCharacteristic(Characteristic.Active).updateValue(isOn);
                     }
                 }.bind(this));
 
