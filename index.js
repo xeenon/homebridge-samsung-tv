@@ -55,7 +55,7 @@ function SamsungTvAccessory(log, config) {
 
     let index = 1;
 
-    this.tvInputService = new Service.InputSource('tv', 'TV')
+    this.tvInputService = new Service.InputSource('TV', 'TV')
         .setCharacteristic(Characteristic.Identifier, index++)
         .setCharacteristic(Characteristic.ConfiguredName, 'TV')
         .setCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
@@ -136,5 +136,16 @@ SamsungTvAccessory.prototype = {
                 this.updateTimer();
             }.bind(this), this.pollingInterval * 1000);
         }
+    },
+
+    createInputService(index, id) {
+        this.log.debug('Creating %s with id %s', id, index);
+
+        return new Service.InputSource(id, id)
+            .setCharacteristic(Characteristic.Identifier, index)
+            .setCharacteristic(Characteristic.ConfiguredName, id)
+            .setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
+            .setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.HDMI)
+            .setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.OTHER);
     }
 };
