@@ -73,9 +73,9 @@ function SamsungTvAccessory(log, config) {
     };
 
     config.enabledInputs
-        .forEach(inputId => {
+        .forEach(input => {
             let serviceIndex = index++;
-            let inputService = this.createInputService(serviceIndex, inputId);
+            let inputService = this.createInputService(serviceIndex, input);
             this.tvService.addLinkedService(inputService);
             this.services.push(inputService);
             this.inputServices[serviceIndex] = inputService;
@@ -138,14 +138,14 @@ SamsungTvAccessory.prototype = {
         }
     },
 
-    createInputService(index, id) {
-        this.log.debug('Creating %s with id %s', id, index);
+    createInputService(index, input) {
+        this.log.debug('Creating %s with id %s', input.id, index);
 
-        return new Service.InputSource(id, id)
+        return new Service.InputSource(input.id, input.id)
             .setCharacteristic(Characteristic.Identifier, index)
-            .setCharacteristic(Characteristic.ConfiguredName, id)
-            .setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.NOT_CONFIGURED)
+            .setCharacteristic(Characteristic.ConfiguredName, input.id)
+            .setCharacteristic(Characteristic.IsConfigured, input.configured ? Characteristic.IsConfigured.CONFIGURED : Characteristic.IsConfigured.NOT_CONFIGURED)
             .setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.HDMI)
-            .setCharacteristic(Characteristic.InputDeviceType, Characteristic.InputDeviceType.OTHER);
+            .setCharacteristic(Characteristic.InputDeviceType, input.deviceType | Characteristic.InputDeviceType.OTHER);
     }
 };
