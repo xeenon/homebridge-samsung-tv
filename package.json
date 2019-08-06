@@ -1,8 +1,8 @@
 {
-  "name": "homebridge-samsung-tv",
-  "version": "1.1.1",
+  "name": "homebridge-samsung-tv-controller",
+  "version": "1.2.0",
   "description": "Homebridge Samsung TV plugin",
-  "author": "esteban-mallen",
+  "author": "xeenon",
   "dependencies": {
     "samsung-remote": "^1.4.2",
     "wake_on_lan": "0.0.4"
@@ -19,10 +19,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/esteban-malen/homebridge-samsungtv-control.git"
+    "url": "https://github.com/xeenon/homebridge-samsung-tv.git"
   },
   "bugs": {
-    "url": "https://github.com/esteban-mallen/homebridge-samsungtv-control/issues"
+    "url": "https://github.com/xeenon/homebridge-samsung-tv/issues"
   },
   "engines": {
     "node": ">=0.12.0",
